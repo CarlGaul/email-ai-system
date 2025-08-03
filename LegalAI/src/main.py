@@ -17,16 +17,18 @@ sys.path.append('/Users/carlgaul/Desktop/EmailAI')
 # Import from current directory (not relative)
 from config import Config
 
-# Force use of simplified LegalAI to avoid dependency issues
+# Try to use full LegalAI with vector database
 try:
-    from legal_ai_core_simple import LegalAI, query_legal_db
-    LEGAL_AI_AVAILABLE = False
-    print("⚠️ Using simplified LegalAI (no vector database)")
-except ImportError:
-    # Fallback to original if simplified not available
+    from legal_ai_core import LegalAI
+    LEGAL_AI_AVAILABLE = True
+    print("✅ Full LegalAI with vector database available")
+except ImportError as e:
+    print(f"⚠️ Full LegalAI failed: {e}")
+    # Fallback to simplified LegalAI
     try:
-        from legal_ai_core import LegalAI
-        LEGAL_AI_AVAILABLE = True
+        from legal_ai_core_simple import LegalAI, query_legal_db
+        LEGAL_AI_AVAILABLE = False
+        print("⚠️ Using simplified LegalAI (no vector database)")
     except ImportError:
         print("❌ LegalAI not available")
         LEGAL_AI_AVAILABLE = False
@@ -163,21 +165,65 @@ def main():
     elif page == "📚 Database & Review":
         st.header("📚 Database & Review")
         
-        # Show flagged emails from Email AI
-        st.subheader("🚨 Flagged Emails")
+        # Legal case search
+        st.subheader("🔍 Search Legal Cases")
+        query = st.text_input("Search legal cases (e.g., pregnancy discrimination):")
+        if query and st.button("Search"):
+            with st.spinner("Searching legal database..."):
+                try:
+                    if LEGAL_AI_AVAILABLE:
+                        # Use full LegalAI with vector database
+                        context = st.session_state.legal_ai.retrieve_context(query)
+                        response = st.session_state.legal_ai.generate_response(query, context)
+                        st.markdown("### Search Results:")
+                        st.markdown(response)
+                    else:
+                        # Use simplified LegalAI
+                        results = query_legal_db(query)
+                        st.markdown("### Search Results:")
+                        for result in results:
+                            st.write(f"**Query**: {result['query']}")
+                            st.write(f"**Response**: {result['response']}")
+                except Exception as e:
+                    st.error(f"Search failed: {e}")
+        
+        # Show flagged emails with case links
+        st.subheader("🚨 Flagged Emails with Related Cases")
         try:
             cache = load_cache()
-            flags = sum(1 for emails in cache.values() for e in emails if e.get('legal_flag'))
-            st.metric("Discrimination Flags", flags)
+            flagged_emails = []
+            for emails in cache.values():
+                for e in emails:
+                    if e.get('legal_flag'):
+                        flagged_emails.append(e)
             
-            if flags > 0:
-                st.info("📧 View detailed flagged emails in the Email AI tab")
+            if flagged_emails:
+                st.metric("Discrimination Flags", len(flagged_emails))
+                for email in flagged_emails:
+                    with st.expander(f"📧 {email.get('subject', 'No Subject')} - {email.get('from', 'Unknown')}"):
+                        st.write(f"**Summary**: {email.get('summary', '')}")
+                        st.write(f"**Flag**: {email.get('legal_flag', '')}")
+                        
+                        # Auto-search related cases
+                        if st.button(f"🔍 Find Related Cases", key=f"search_{email.get('subject', '')}"):
+                            with st.spinner("Finding related cases..."):
+                                try:
+                                    if LEGAL_AI_AVAILABLE:
+                                        context = st.session_state.legal_ai.retrieve_context(email.get('summary', ''))
+                                        response = st.session_state.legal_ai.generate_response(
+                                            f"Find cases related to: {email.get('summary', '')}", 
+                                            context
+                                        )
+                                        st.markdown("### Related Cases:")
+                                        st.markdown(response)
+                                    else:
+                                        st.info("Full LegalAI not available for case search")
+                                except Exception as e:
+                                    st.error(f"Case search failed: {e}")
             else:
                 st.info("✅ No discrimination flags found")
         except Exception as e:
             st.warning(f"⚠️ Could not load email cache: {e}")
-        
-        st.write("📚 Database functionality coming soon...")
 
     elif page == "⚙️ System Setup":
         st.header("⚙️ System Settings")
@@ -229,6 +275,45 @@ def main():
             st.success("✅ Legal BERT Classifier available")
         else:
             st.warning("⚠️ Legal BERT Classifier not available")
+        
+        # Scheduling Debug (Issue #2)
+        st.subheader("🕐 Scheduling Debug")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("📋 List Launchd Jobs"):
+                try:
+                    result = subprocess.run(['launchctl', 'list'], capture_output=True, text=True)
+                    if 'com.emailai.daily' in result.stdout:
+                        st.success("✅ Email AI service found in launchd")
+                    else:
+                        st.warning("⚠️ Email AI service not found")
+                    st.text_area("Launchd Jobs", result.stdout, height=200)
+                except Exception as e:
+                    st.error(f"❌ Error listing jobs: {e}")
+        
+        with col2:
+            if st.button("🔄 Reload EmailAI Service"):
+                try:
+                    subprocess.run(['launchctl', 'unload', '~/Library/LaunchAgents/com.emailai.daily.plist'], capture_output=True)
+                    subprocess.run(['launchctl', 'load', '~/Library/LaunchAgents/com.emailai.daily.plist'], capture_output=True)
+                    st.success("✅ Service reloaded!")
+                except Exception as e:
+                    st.error(f"❌ Error reloading service: {e}")
+        
+        # Check for multiple reports issue
+        st.subheader("📊 Report Analysis")
+        if st.button("🔍 Check Recent Reports"):
+            try:
+                # Check logs for multiple reports
+                log_result = subprocess.run(['log', 'show', '--predicate', 'process == "python3"', '--start', '$(date -v-1d)', '--end', 'now'], capture_output=True, text=True)
+                if 'email_ai.py' in log_result.stdout:
+                    st.info("📧 Email AI processes found in recent logs")
+                else:
+                    st.info("📧 No recent Email AI processes in logs")
+                st.text_area("Recent Logs", log_result.stdout[:500], height=150)
+            except Exception as e:
+                st.error(f"❌ Error checking logs: {e}")
 
     elif page == "👨‍🏫 AI Fine-Tuning":
         teaching_page()

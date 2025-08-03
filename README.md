@@ -9,7 +9,10 @@ A comprehensive Email AI system that integrates with Thunderbird via IMAP/SMTP, 
 - **Automated Daily Reports**: Sends comprehensive daily reports to CarlGaul account
 - **Local Processing**: All processing happens locally for privacy
 - **Concurrent Processing**: Efficient multi-threaded email fetching with controlled Ollama usage
-- **LegalAI Integration**: Flags pregnancy discrimination for FamilyBeginnings.org accounts
+- **Full LegalAI Integration**: Enhanced Legal-BERT classifier with Metal acceleration for accurate pregnancy discrimination detection
+- **Vector Database Search**: ChromaDB-powered legal case search with semantic similarity
+- **Unified Dashboard**: Streamlit-based interface with Email AI, Legal AI, and Database tabs
+- **Clickable Launcher**: Easy macOS app launcher with virtual environment support
 - **ProtonMail Bridge Support**: Optimized for ProtonMail Bridge with STARTTLS
 
 ## 📋 System Status
@@ -72,7 +75,28 @@ streamlit run main.py --server.port 8501
 
 **Dashboard URL**: http://localhost:8501
 
-### 3. Verify Ollama Setup
+### 3. Virtual Environment Setup (Phase 2)
+
+For full LegalAI functionality with vector database and enhanced classification:
+
+```bash
+# Navigate to LegalAI directory
+cd LegalAI/src
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Install dependencies
+pip install torch transformers sentence-transformers chromadb streamlit psutil
+
+# Test imports
+python3 -c "from legal_ai_core import LegalAI; print('✅ Full LegalAI ready')"
+```
+
+### 4. Verify Ollama Setup
 
 Ensure Ollama is running and the required model is available:
 

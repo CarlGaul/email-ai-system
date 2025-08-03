@@ -8,6 +8,10 @@ echo "🚀 Starting Unified AI Dashboard..."
 # Navigate to the correct directory
 cd /Users/carlgaul/Desktop/LegalAI/src
 
+# Activate virtual environment
+echo "🔧 Activating virtual environment..."
+source venv/bin/activate
+
 # Kill any existing Streamlit processes
 echo "🔄 Stopping any existing Streamlit processes..."
 pkill -f streamlit 2>/dev/null

@@ -20,11 +20,17 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 # Add LegalAI path
 sys.path.append('/Users/carlgaul/Desktop/LegalAI/src')
 try:
-    from legal_bert_classifier import LegalBERTClassifier
+    from legal_bert_classifier_enhanced import EnhancedLegalClassifier
     LEGALAI_AVAILABLE = True
+    print("✅ Enhanced Legal-BERT classifier available")
 except ImportError:
-    LEGALAI_AVAILABLE = False
-    print("⚠️ LegalAI not available - legal flagging disabled")
+    try:
+        from legal_bert_classifier import LegalBERTClassifier
+        LEGALAI_AVAILABLE = True
+        print("✅ Basic Legal-BERT classifier available")
+    except ImportError:
+        LEGALAI_AVAILABLE = False
+        print("⚠️ LegalAI not available - legal flagging disabled")
 
 ACCOUNTS = [
     {
@@ -176,19 +182,29 @@ def process_email(email_data):
     legal_flag = ''
     if LEGALAI_AVAILABLE and email_data.get('account_name') in ['Carl', 'Contact', 'Admin']:
         try:
-            classifier = LegalBERTClassifier()
-            # Try different method names that might exist
-            if hasattr(classifier, 'predict'):
-                prediction = classifier.predict(body)
-            elif hasattr(classifier, 'classify'):
-                prediction = classifier.classify(body)
-            elif hasattr(classifier, 'predict_text'):
-                prediction = classifier.predict_text(body)
-            else:
-                prediction = "unknown"
-            
-            if 'pregnancy_discrimination' in prediction.lower():
-                legal_flag = "🚨 LegalAI Flag: Potential pregnancy discrimination case - Review with LegalAI system.\n"
+            # Try enhanced classifier first, then fallback to basic
+            try:
+                classifier = EnhancedLegalClassifier()
+                classification = classifier.classify_document(body)
+                if classification and classification.get('category', '').lower() in ['pregnancy_discrimination', 'pregnancy_discrimination_termination', 'pregnancy_discrimination_hiring', 'pregnancy_discrimination_accommodation', 'pregnancy_discrimination_benefits', 'pregnancy_discrimination_harassment', 'pregnancy_discrimination_retaliation']:
+                    confidence = classification.get('confidence', 0)
+                    legal_flag = f"🚨 LegalAI Flag: Potential pregnancy discrimination case (confidence: {confidence:.1%}) - Review with LegalAI system.\n"
+            except Exception as e:
+                print(f"⚠️ Enhanced classifier failed: {e}")
+                # Fallback to basic classifier
+                classifier = LegalBERTClassifier()
+                # Try different method names that might exist
+                if hasattr(classifier, 'predict'):
+                    prediction = classifier.predict(body)
+                elif hasattr(classifier, 'classify'):
+                    prediction = classifier.classify(body)
+                elif hasattr(classifier, 'predict_text'):
+                    prediction = classifier.predict_text(body)
+                else:
+                    prediction = "unknown"
+                
+                if 'pregnancy_discrimination' in prediction.lower():
+                    legal_flag = "🚨 LegalAI Flag: Potential pregnancy discrimination case - Review with LegalAI system.\n"
         except Exception as e:
             print(f"⚠️ LegalAI analysis failed: {e}")
     
