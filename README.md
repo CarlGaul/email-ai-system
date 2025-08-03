@@ -244,6 +244,22 @@ pkill -f ollama
 pkill -f streamlit
 ```
 
+**OSError I/O Error (Fixed)**
+```bash
+# If you see "OSError [Errno 5] Input/output error" on startup:
+# This was caused by print statements in Streamlit with redirected output
+# Fixed by removing prints and using logging instead
+
+# Check logs for debug info:
+tail -f /Users/carlgaul/Desktop/LegalAI/logs/dashboard.log
+
+# If issues persist, restart the dashboard:
+pkill -f streamlit
+cd /Users/carlgaul/Desktop/LegalAI/src
+source venv/bin/activate
+streamlit run main.py
+```
+
 ### 7. Verify Ollama Setup
 
 Ensure Ollama is running and the required model is available:
