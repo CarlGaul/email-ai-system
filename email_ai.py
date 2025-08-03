@@ -91,26 +91,46 @@ RECIPIENTS = {
 REPORT_EMAIL = ACCOUNTS[0]['email_user']  # e.g., CarlGaul as primary
 
 def ollama_generate(prompt, max_tokens=500):
-    """Generate text with Ollama API, with token limit approximation."""
+    """Generate text with Ollama API, with enhanced retry logic and error handling."""
     payload = {
         'model': OLLAMA_MODEL,
         'prompt': prompt,
         'stream': False,
         'options': {'num_predict': max_tokens}  # Approximate token limit
     }
-    for attempt in range(5):
+    
+    # Enhanced retry logic with exponential backoff
+    for attempt in range(10):  # Increased to 10 attempts
         try:
-            response = requests.post(OLLAMA_URL, json=payload, timeout=15)
+            response = requests.post(OLLAMA_URL, json=payload, timeout=30)  # Increased timeout
             if response.status_code == 200:
                 return response.json()['response'].strip()
-            raise Exception(f"Ollama error: {response.text}")
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            if attempt < 4:
-                print(f"⚠️ Ollama attempt {attempt + 1} failed: {e}, retrying...")
-                time.sleep(15)
             else:
-                raise Exception(f"Ollama failed after 5 attempts: {e}")
-    raise Exception("Ollama connection failed")
+                print(f"⚠️ Ollama attempt {attempt + 1} failed: {response.status_code} - {response.text}")
+                raise Exception(f"Ollama error: {response.text}")
+        except requests.exceptions.ConnectionError as e:
+            print(f"⚠️ Ollama connection attempt {attempt + 1} failed: {e}")
+            if attempt < 9:  # Not the last attempt
+                time.sleep(min(2 ** attempt, 30))  # Exponential backoff with max 30s
+                continue
+            else:
+                return f"Error: Ollama connection failed after 10 attempts - {str(e)}"
+        except requests.exceptions.Timeout as e:
+            print(f"⚠️ Ollama timeout attempt {attempt + 1} failed: {e}")
+            if attempt < 9:  # Not the last attempt
+                time.sleep(min(2 ** attempt, 30))  # Exponential backoff with max 30s
+                continue
+            else:
+                return f"Error: Ollama timeout after 10 attempts - {str(e)}"
+        except Exception as e:
+            print(f"⚠️ Ollama attempt {attempt + 1} failed: {e}")
+            if attempt < 9:  # Not the last attempt
+                time.sleep(min(2 ** attempt, 30))  # Exponential backoff with max 30s
+                continue
+            else:
+                return f"Error generating response: {str(e)}"
+    
+    return "Error: Failed to generate response after 10 attempts"
 
 def fetch_emails_for_account(account):
     """Fetch emails from the last 24 hours via IMAP for one account."""
@@ -161,8 +181,22 @@ def fetch_emails_for_account(account):
                 return account['name'], f"Error fetching emails: {str(e)}"
 
 def process_email(email_data):
-    """Process single email: summarize, classify priority, draft response."""
-    body = email_data['body'][:2000]  # Limit for LLM
+    """
+    Process single email: summarize, classify priority, draft response.
+    
+    This function handles the core AI processing pipeline:
+    1. Email summarization using Ollama
+    2. Priority classification (high/medium/low)
+    3. Response drafting for high/medium priority emails
+    4. LegalAI flagging for FamilyBeginnings.org accounts
+    
+    Args:
+        email_data (dict): Email data with 'body', 'subject', 'from', 'account_name'
+    
+    Returns:
+        dict: Processed email with summary, priority, draft, and legal_flag
+    """
+    body = email_data['body'][:2000]  # Limit for LLM to prevent token overflow
     
     # Summary
     summary_prompt = f"Summarize this email concisely in 2-3 sentences: {body}"
@@ -179,6 +213,7 @@ def process_email(email_data):
         draft = ollama_generate(draft_prompt, max_tokens=300)
     
     # LegalAI integration for FamilyBeginnings.org accounts
+    # Only process FamilyBeginnings.org accounts for legal flagging
     legal_flag = ''
     if LEGALAI_AVAILABLE and email_data.get('account_name') in ['Carl', 'Contact', 'Admin']:
         try:

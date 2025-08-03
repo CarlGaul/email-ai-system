@@ -17,9 +17,10 @@ A comprehensive Email AI system that integrates with Thunderbird via IMAP/SMTP, 
 
 ## 📋 System Status
 
-**Current Version**: v6.0  
+**Current Version**: v7.0  
 **Status**: ✅ **PRODUCTION READY**  
-**Last Updated**: August 3, 2025
+**Last Updated**: August 3, 2025  
+**Phase**: Phase 2 Complete - Full LegalAI Integration
 
 ### ✅ Core Functionality (5/5)
 1. **Environment Variables**: All 24 variables properly configured
@@ -75,7 +76,56 @@ streamlit run main.py --server.port 8501
 
 **Dashboard URL**: http://localhost:8501
 
-### 3. Virtual Environment Setup (Phase 2)
+### 3. Using the Dashboard
+
+#### **Email AI Tab**
+- **📧 Email Overview**: View processed emails with summaries, priorities, and legal flags
+- **🔍 Query Emails**: Ask natural language questions about your emails
+  - Example: "Show me all job interview emails"
+  - Example: "Find emails about discrimination issues"
+- **🔄 Refresh Emails**: Manually trigger email processing and cache update
+- **🚨 Flagged Emails**: View emails flagged for legal issues with detailed analysis
+
+#### **Database & Review Tab**
+- **🔍 Search Legal Cases**: Query the legal database for relevant cases
+  - Example: "Find cases about pregnancy discrimination"
+  - Example: "Search for accommodation cases"
+- **🚨 Flagged Emails with Cases**: View flagged emails and automatically find related legal cases
+- **📊 Case Analysis**: Get detailed legal analysis with citations and recommendations
+
+#### **Settings Tab**
+- **🏥 System Health**: Real-time monitoring of Ollama, RAM, and disk usage
+- **📧 Email AI Settings**: Check scheduling status and reload services
+- **⚖️ Legal AI Status**: Verify Legal-BERT classifier and vector database status
+- **🕐 Scheduling Debug**: Troubleshoot daily report scheduling issues
+
+### 4. Query Examples
+
+#### **Email Queries**
+```bash
+# Find specific types of emails
+"Show me all job interview requests"
+"Find emails about discrimination complaints"
+"Summarize all emails from last week"
+
+# Legal-specific queries
+"Flagged emails with pregnancy discrimination"
+"Emails requiring legal review"
+```
+
+#### **Legal Case Queries**
+```bash
+# Search for specific legal issues
+"Find cases about pregnancy discrimination termination"
+"Search for accommodation cases in employment law"
+"Cases about hostile work environment and pregnancy"
+
+# General legal research
+"Recent cases about family leave"
+"Employment discrimination precedents"
+```
+
+### 5. Virtual Environment Setup (Phase 2)
 
 For full LegalAI functionality with vector database and enhanced classification:
 
@@ -96,7 +146,75 @@ pip install torch transformers sentence-transformers chromadb streamlit psutil
 python3 -c "from legal_ai_core import LegalAI; print('✅ Full LegalAI ready')"
 ```
 
-### 4. Verify Ollama Setup
+### 6. Troubleshooting
+
+#### **Common Issues and Solutions**
+
+**Ollama Connection Issues**
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+
+# Start Ollama if not running
+ollama serve
+
+# Check available models
+ollama list
+
+# Pull required model if missing
+ollama pull qwen2.5:14b
+```
+
+**Dashboard Not Starting**
+```bash
+# Kill existing processes
+pkill -f streamlit
+
+# Check virtual environment
+cd LegalAI/src
+source venv/bin/activate
+
+# Reinstall dependencies if needed
+pip install -r requirements.txt
+
+# Start dashboard manually
+streamlit run main.py --server.port 8501
+```
+
+**LegalAI Import Errors**
+```bash
+# Recreate virtual environment
+cd LegalAI/src
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Email Processing Issues**
+```bash
+# Check ProtonMail Bridge
+# Ensure Bridge is running and configured for IMAP/SMTP
+
+# Test email connection
+python3 test_setup.py
+
+# Check environment variables
+echo $CARLGAUL_EMAIL_USER
+```
+
+**High Memory Usage**
+```bash
+# Monitor RAM usage
+ps aux | grep ollama
+ps aux | grep streamlit
+
+# Restart services if needed
+pkill -f ollama
+pkill -f streamlit
+```
+
+### 7. Verify Ollama Setup
 
 Ensure Ollama is running and the required model is available:
 

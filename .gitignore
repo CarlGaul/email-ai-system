@@ -11,6 +11,19 @@ logs/stdout.log
 cache/
 *.json
 
+# Virtual environment
+LegalAI/src/venv/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
 # System files
 .DS_Store
 **/.DS_Store
