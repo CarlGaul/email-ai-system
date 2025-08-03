@@ -40,7 +40,22 @@ Copy the contents of `env_template.sh` to your `~/.zshrc` file and replace the p
 
 ### 2. Unified Dashboard Setup
 
-**Run the Unified Email AI + Legal AI Dashboard:**
+**Easy Launch Options:**
+
+**Option A: Clickable App (Recommended)**
+```bash
+# Double-click the .command file on Desktop
+/Users/carlgaul/Desktop/launch_dashboard.command
+```
+
+**Option B: Launch Script**
+```bash
+# Run from LegalAI directory
+cd LegalAI
+./launch_dashboard.sh
+```
+
+**Option C: Manual Start**
 ```bash
 # Navigate to LegalAI directory
 cd LegalAI/src
@@ -54,6 +69,8 @@ streamlit run main.py --server.port 8501
 - ⚖️ **Legal AI**: Legal question answering and case search
 - 📚 **Database**: Flagged emails and legal case review
 - ⚙️ **Settings**: System status and scheduling management
+
+**Dashboard URL**: http://localhost:8501
 
 ### 3. Verify Ollama Setup
 
