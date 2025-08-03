@@ -10,6 +10,8 @@ import requests  # For Ollama API
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 import time
+import json
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Load .env
@@ -68,7 +70,18 @@ OLLAMA_MODEL = 'qwen2.5:14b'  # Primary model from inventory
 MAX_CONCURRENT = 2  # From inventory concurrent limiting
 THREAD_POOL_SIZE = 4  # From inventory
 
-# Report sent to primary email
+# Cache configuration
+CACHE_PATH = '/Users/carlgaul/Desktop/EmailAI/cache/emails.json'
+
+# Recipients mapping for account-specific reports
+RECIPIENTS = {
+    'CarlGaul': 'CarlGaul@protonmail.com',
+    'Carl': 'Carl@FamilyBeginnings.org',
+    'Contact': 'Contact@FamilyBeginnings.org',
+    'Admin': 'Admin@FamilyBeginnings.org'
+}
+
+# Report sent to primary email (fallback)
 REPORT_EMAIL = ACCOUNTS[0]['email_user']  # e.g., CarlGaul as primary
 
 def ollama_generate(prompt, max_tokens=500):
@@ -191,7 +204,10 @@ def send_report(account, report_text):
     msg = MIMEText(report_text)
     msg['Subject'] = 'Daily Email AI Report'
     msg['From'] = account['email_user']
-    msg['To'] = REPORT_EMAIL
+    
+    # Use account-specific recipient if available, otherwise fallback to primary
+    to_email = RECIPIENTS.get(account['name'], REPORT_EMAIL)
+    msg['To'] = to_email
     
     try:
         context = ssl.create_default_context()
@@ -200,9 +216,10 @@ def send_report(account, report_text):
         with smtplib.SMTP(account['smtp_server'], account['smtp_port']) as server:
             server.starttls(context=context)
             server.login(account['email_user'], account['email_pass'])
-            server.sendmail(account['email_user'], REPORT_EMAIL, msg.as_string())
+            server.sendmail(account['email_user'], to_email, msg.as_string())
+            print(f"✅ Report sent to {to_email} from {account['name']}")
     except Exception as e:
-        print(f"❌ SMTP error: {e}")
+        print(f"❌ SMTP error for {account['name']}: {e}")
 
 # Main logic
 if __name__ == '__main__':
@@ -241,7 +258,37 @@ if __name__ == '__main__':
     
     print(report)  # For local debugging/logging
     
-    # Send report using primary account
-    send_report(ACCOUNTS[0], report)
+    # Save processed emails to cache for UI
+    cache_data = {}
+    for acc_name, emails in all_emails.items():
+        if isinstance(emails, list):
+            processed_emails = []
+            for e in emails:
+                processed = process_email(e)
+                processed_email = {
+                    'from': e['from'],
+                    'subject': e['subject'],
+                    'body': e['body'],
+                    'account_name': e.get('account_name', acc_name),
+                    'summary': processed['summary'],
+                    'priority': processed['priority'],
+                    'draft': processed['draft'],
+                    'legal_flag': processed['legal_flag']
+                }
+                processed_emails.append(processed_email)
+            cache_data[acc_name] = processed_emails
+    
+    # Save to cache
+    cache_dir = Path(CACHE_PATH).parent
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    with open(CACHE_PATH, 'w') as f:
+        json.dump(cache_data, f, indent=2)
+    
+    # Send reports to each account individually
+    for account in ACCOUNTS:
+        try:
+            send_report(account, report)
+        except Exception as e:
+            print(f"❌ Failed to send report to {account['name']}: {e}")
     
     # Optional: Urgent alerts - if any high priority, send separate immediate report (for now, integrated; extend as needed) 

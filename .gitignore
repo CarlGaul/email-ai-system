@@ -7,6 +7,10 @@ logs/*.log
 logs/stderr.log
 logs/stdout.log
 
+# Cache files
+cache/
+*.json
+
 # System files
 .DS_Store
 **/.DS_Store

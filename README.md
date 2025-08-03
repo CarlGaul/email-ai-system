@@ -38,7 +38,24 @@ python3 setup_env.py
 **Option B: Manual Setup**
 Copy the contents of `env_template.sh` to your `~/.zshrc` file and replace the placeholder values with your actual email credentials.
 
-### 2. Verify Ollama Setup
+### 2. Unified Dashboard Setup
+
+**Run the Unified Email AI + Legal AI Dashboard:**
+```bash
+# Navigate to LegalAI directory
+cd LegalAI/src
+
+# Run the unified dashboard
+streamlit run main.py --server.port 8501
+```
+
+**Dashboard Features:**
+- 📧 **Email AI**: Email processing, querying, and analysis
+- ⚖️ **Legal AI**: Legal question answering and case search
+- 📚 **Database**: Flagged emails and legal case review
+- ⚙️ **Settings**: System status and scheduling management
+
+### 3. Verify Ollama Setup
 
 Ensure Ollama is running and the required model is available:
 
@@ -53,7 +70,7 @@ ollama list
 ollama pull qwen2.5:14b
 ```
 
-### 3. Test the Setup
+### 4. Test the Setup
 
 **Step 1: Run the comprehensive test**
 ```bash
@@ -71,7 +88,7 @@ python3 test_email_ai.py
 python3 email_ai.py
 ```
 
-### 4. Schedule Daily Runs
+### 5. Schedule Daily Runs
 
 Load the launchd service to run daily at 8 AM:
 
