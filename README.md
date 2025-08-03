@@ -46,23 +46,36 @@ Copy the contents of `env_template.sh` to your `~/.zshrc` file and replace the p
 
 **Easy Launch Options:**
 
-**Option A: Clickable App (Recommended)**
+**Option A: Silent Clickable App (Recommended)**
+```bash
+# Create silent Automator app (no Terminal popup)
+cd /Users/carlgaul/Desktop/LegalAI
+./create_silent_app.sh
+
+# Follow the instructions to create Email AI Dashboard.app
+# Double-click the app on Desktop - runs silently!
+```
+
+**Option B: Command File (Shows Terminal)**
 ```bash
 # Double-click the .command file on Desktop
 /Users/carlgaul/Desktop/launch_dashboard.command
 ```
 
-**Option B: Launch Script**
+**Option C: Launch Script**
 ```bash
 # Run from LegalAI directory
 cd LegalAI
 ./launch_dashboard.sh
 ```
 
-**Option C: Manual Start**
+**Option D: Manual Start**
 ```bash
 # Navigate to LegalAI directory
 cd LegalAI/src
+
+# Activate virtual environment
+source venv/bin/activate
 
 # Run the unified dashboard
 streamlit run main.py --server.port 8501
@@ -189,6 +202,23 @@ rm -rf venv
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# Test imports
+python -c "from transformers import AutoTokenizer; from legal_ai_core import LegalAI; print('✅ All imports successful')"
+```
+
+**Venv Activation Issues**
+```bash
+# Check if venv exists
+ls -la /Users/carlgaul/Desktop/LegalAI/src/venv/
+
+# Activate manually
+cd /Users/carlgaul/Desktop/LegalAI/src
+source venv/bin/activate
+
+# Test activation
+which python
+python --version
 ```
 
 **Email Processing Issues**
